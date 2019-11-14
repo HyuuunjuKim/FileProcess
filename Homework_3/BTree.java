@@ -26,6 +26,18 @@ public class BTree {
 			this.count = 0; //처음에는 key배열에 아무것도 안담김
 			
 		}
+		public boolean isLeaf(int m) {
+			this.isLeaf = true;
+			for (int i = 0 ; i < m ; i++) {
+				if(this.child[i] != null) {
+					this.isLeaf = false;
+					break;
+					
+				}
+				
+			}
+			return this.isLeaf;
+		}
 		
 		public int getValue(int index) {
 			return key[index];
@@ -78,7 +90,11 @@ public class BTree {
 		}
 		
 		
-		if(root.isLeaf) {
+		if(root.isLeaf(root.m) == true) {
+			stack.push(root);
+			return null;
+		}
+		else if (root.isLeaf(root.m) == false && root.count < root.m-1) {
 			stack.push(root);
 			return null;
 		}
@@ -114,6 +130,10 @@ public class BTree {
 		search(x, newKey, stack); //stack에 지나가는 노드들 push하면서 단말까지 갔을때  null return;
 		if(stack.size() == 1 && T.count < m-1) {
 			T.key[T.count] = newKey;
+			for(int i = T.count ; i <m-1 ; i++) {
+				T.child[i+1] = T.child[i];
+			}
+			T.child[T.count] = null;
 			T.count++;
 			Arrays.sort(T.key);
 			return T;
@@ -126,6 +146,8 @@ public class BTree {
 				
 				if ((int)split.get(0) == -1) {
 					popNode.key[popNode.count] = newKey;
+					popNode.count++;
+					
 					break;
 				}
 				else {
@@ -149,10 +171,10 @@ public class BTree {
 						break;
 					}
 					
-					else if(popNode.parent.m == m) {
+					else if(popNode.parent.count == m-1) {
 						insertKey(popNode.count, popNode, newKey);
 					}
-					else if (popNode.parent.m != m){
+					else if (popNode.parent.count != m){
 						popNode.reset(m, popNode.parent);
 						popNode.key[0] = newKey;
 						popNode.child[0] = left;
