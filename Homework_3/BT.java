@@ -2,21 +2,29 @@ package Homework_3;
 
 import Homework_3.BTree.Node;
 
-public class BT {
 
+public class BT {
+	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
+		int[] array = 
+		{40, 11, 77, 33, 20, 90, 99, 70, 88, 80, 66, 10, 22, 30, 44, 55, 50, 60, 100, 28, 18, 9, 5, 17, 6, 3, 1, 4, 2, 7, 8, 73, 12, 13, 14, 16, 15, 25, 24, 28, 45, 49, 42, 43, 41, 47, 48, 46, 63, 68, 61, 62, 64, 69, 67, 65, 54, 59, 58, 51, 53, 57, 52, 56, 83, 81, 82, 84, 75, 89};
+
+		//m이 3인 경우
 		BTree BT = new BTree();
+		Node T = null;	
 		
-		Node T = null;
+		for (int i = 0; i < array.length ; i++) {
+			T = BT.insertBT(T, 3, array[i]); BT.inorderBT(T, 3); System.out.println();
+		}
 		
-		T = BT.insertBT(T, 3, 40); BT.inorderBT(T, 3); System.out.println();
-		T = BT.insertBT(T, 3, 11); BT.inorderBT(T, 3); System.out.println();
-		T = BT.insertBT(T, 3, 77); BT.inorderBT(T, 3); System.out.println();
-		T = BT.insertBT(T, 3, 33); BT.inorderBT(T, 3); System.out.println();
-		T = BT.insertBT(T, 3, 20); BT.inorderBT(T, 3); System.out.println();
-		T = BT.insertBT(T, 3, 90); BT.inorderBT(T, 3); System.out.println();
-		T = BT.insertBT(T, 3, 99); BT.inorderBT(T, 3); System.out.println();
+		//m이 4인 경우
+		BTree BT2 = new BTree();
+		Node T2 = null;
+		
+		for (int i = 0; i < array.length ; i++) {
+			T2 = BT2.insertBT(T2, 4, array[i]); BT2.inorderBT(T2, 4); System.out.println();
+		}
 
 	}
 

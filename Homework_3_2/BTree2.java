@@ -1,18 +1,21 @@
-package Homework_3;
+package Homework_3_2;
 
 import java.util.*;
 
 
-public class BTree {
+public class BTree2 {
 	public static class Node {
-		public ArrayList<Integer> key; //현재 노드 안 key배열리스트
+		public ArrayList<Integer> key; //현재 노드 안 key배열
 		public Node[] child; //현재 노드의 자식 노드들 배열
 		public Node parent; //현재 노드의 부모 노드(1개)		
 		public int m;
 		public int count; //현재 노드 안 key의 개수		
 		public boolean isLeaf; //단말 노드인지 아닌지 
 		
-				
+		public Node() {
+			// default 생성자
+		}
+		
 		public Node(int m, Node parent) {
 			this.m = m;
 			this.parent = parent;
@@ -22,32 +25,42 @@ public class BTree {
 			this.count = 0; //처음에는 key배열에 아무것도 안담김
 			
 		}
-		
 		public boolean isLeaf(int m) {
 			this.isLeaf = true;
 			for (int i = 0 ; i < m ; i++) {
 				if(this.child[i] != null) {
 					this.isLeaf = false;
-					break;					
-				}				
+					break;
+					
+				}
+				
 			}
 			return this.isLeaf;
 		}
 		
+//		public int getValue(int index) {
+//			return key[index];
+//		}
+		
 		public Node getChildNode(int index) {
 			return child[index];
 		}
-		
+		public Node reset(int m, Node parent) {
+			Node newNode = new Node(m, parent);
+			this.isLeaf = false;
+			
+			return newNode;
+		}
 	}
 	
-	
-	public static void inorderBT(Node T, int m) {
+	public static void inorderBT2(Node T, int m) {
+
 		if(T != null) {
 			for (int i = 0 ; i < T.count ; i++) {
-				inorderBT(T.child[i], m);
+				inorderBT2(T.child[i], m);
 				System.out.print(" " + T.key.get(i));	
 			}
-			inorderBT(T.child[T.count], m);
+			inorderBT2(T.child[T.count], m);
 		}
 		else {
 			return;	
@@ -62,9 +75,10 @@ public class BTree {
 			i++;
 		}
 		
+		
 		if(i < root.count && searchKey == root.key.get(i)) {
 			System.out.println("이미 존재 하는 key입니다.");
-			return root; //searchKey가 이미 존재하면 root를 리턴
+			return root; //searchKey를 root Node에서 찾음
 		}
 		
 		
@@ -73,6 +87,11 @@ public class BTree {
 			stack.push(root);
 			return null;
 		}
+//		else if (root.isLeaf(root.m) == false && root.count < root.m-1 && searchKey >root.key[0] ) {
+//			parent.push(root);
+//			stack.push(root);
+//			return null;
+//		}
 		else {
 			parent.push(root);
 			stack.push(root);
@@ -81,8 +100,7 @@ public class BTree {
 		
 	}
 	
-	
-	public Node insertBT(Node T, int m, int newKey) {
+	public Node insertBT2(Node T, int m, int newKey) {
 		/*
 		 * Node가 비어있는 경우
 		 * T에 newKey삽입 후 종료
@@ -98,22 +116,16 @@ public class BTree {
 		 * Node가 비어있지 않은 경우
 		 * 1. T에 newKey를 삽입할 자리를 찾기
 		 */
-		Stack<Node> stack = new Stack<>(); //newKey의 자리를 찾아가며 거처가는 노드들을 담을 스택
-		Stack<Node> parent = new Stack<>(); //거처가는 노드들의 부모노드를 담을 스택
-		
+		Stack<Node> stack = new Stack<>();
+		Stack<Node> parent = new Stack<>();
 		Node x = T;
 		Node left = null;
 		Node right = null;
 		int middleKey;
 		Vector split;
 		
-		/*
-		 * 새로운 노드를 삽입하는 경우면 null리턴
-		 * 이미 존재하는 노드를 삽입하는 경우면 T리턴
-		 */
-		Node NUllreturn = search(x, newKey, stack, parent); 
+		Node NUllreturn = search(x, newKey, stack, parent); //stack에 지나가는 노드들 push하면서 단말까지 갔을때  null return;
 		if (NUllreturn == null) {
-			//삽입 초반의 경우 
 			if(stack.size() == 1 && T.count < m-1) {
 				T.key.add(T.count, newKey);
 				for(int i = T.count ; i <m-1 ; i++) {
@@ -126,15 +138,9 @@ public class BTree {
 			}
 			else {
 				do{
-					Node popNode = stack.pop(); //newKey를 삽입시킬 위치
-					Node insert = null;
-					/*
-					 * 현재는 stack와 parent 스택이 똑같은 상태
-					 * 하지만 처음에 parent 스택에서 top노드를 꺼낸 후,
-					 * stack와 parent 스택을 계속 해서 동시에 pop하면
-					 * parent 스택에서 pop되는 노드는 stack의 부모 노드
-					 */
+					Node popNode = stack.pop();
 					Node delete_top = null;
+					Node insert = null;
 					if(parent.empty() != true) {
 						delete_top = parent.pop();
 					}
@@ -143,72 +149,74 @@ public class BTree {
 					}
 					split = insertKey(popNode.count, popNode, newKey);
 					
-					//pop한 노드가 꽉 차지 않아 현재 추가 가능 상태
-					if (split.get(0).equals("현재추가가능")) {
+					
+					if ((int)split.get(0) == -1) {
 						popNode.key.add(popNode.count, newKey);
 						popNode.count++;
 						Collections.sort(popNode.key);						
 						break;
 					}
-					/*
-					 * pop한 노드가 꽉 차 있어, 현재 추가 불가능 상태
-					 * insertKey를 통해 return받은 값들을 통해 split시도
-					 */
 					else {
-						newKey = (int)split.get(0); //중간 값
-						left = (Node)split.get(1); //왼쪽 자식이 될 노드
-						right = (Node)split.get(2); //오른쪽 자식이 될 노드
-						popNode.child[0] = left; 
+						newKey = (int)split.get(0);
+						left = (Node)split.get(1);
+						right = (Node)split.get(2);
+						popNode.child[0] = left;
 						popNode.child[1] = right;
-						
 						Node parent_pop = null;
-						//pop 한 노드의 parent노드 pop하여 부모노드로 설정
 						if(parent.empty() != true) {
 							parent_pop = parent.pop();
 							popNode.parent = parent_pop;
 						}
 						else {
+							
 							popNode.parent = null;
 						}
-						//popNode는 더 이상 단말노드가 아님
+	//					popNode.parent = parent.pop();
 						popNode.isLeaf = false;
 						
-						//root Node를 split하는 경우
 						if (popNode.parent ==  null) {
 							Node newNode = new Node(m, null);
 							newNode.key.add(0, newKey);
-							newNode.count = 1;
-							
 							newNode.child[0] = left;
 							newNode.child[1] = right;
 							
+							newNode.count = 1;
 							newNode.child[0].count = left.count;
 							newNode.child[1].count = right.count;
-							
 							T = newNode;
 							break;
 						}
+						
+	//					else if(popNode.parent.count == m-1) {
+	//						insertKey(popNode.count, popNode, newKey);
+	//					}
 						else if (popNode.parent.count <= m-1){
-							//pop한 노드의 현재 위치에 들어갈 노드
-							insert = new Node(m, parent_pop); 
+							insert = new Node(m, parent_pop);
+	//						popNode.reset(m, parent_pop);
 							insert.key.add(0, newKey);
-							//pop한 노드에 inserKey를 통해 받은 중간값만 삽입
 							popNode.key = insert.key;
 							popNode.count=1;
-							
 							popNode.child[0] = left;
 							popNode.child[left.count] = right;
-							
 							popNode.child[0].count = left.count;
 							popNode.child[left.count].count = right.count;
-							
+							popNode.isLeaf = false;
 							break;
-						}	
+						}
 						
-					}
-					
+						
+					}					
 				}while(!stack.isEmpty());
-		
+			
+	//		if(stack.isEmpty()){//stack이 empty라는 건 level이 하나 증가한다는 것
+	//			T = new Node(m, null);
+	//			T.key[0] = newKey;
+	////			T.child[0] = 
+	////			T.child[1] = 
+	////			
+	////			return T;
+	//		}
+			
 			}
 		}		
 		return T;				
@@ -216,16 +224,19 @@ public class BTree {
 	
 	public Vector insertKey(int count, Node popNode, int newKey) {
 		Node x = popNode;
-		Vector split = new Vector(); //중간 값, 왼쪽 노드, 오른쪽 노드 리턴 예정
+		Vector split = new Vector(); //중간 값, 왼쪽 노드, 오른쪽 노드 리턴
 		Node splitLeft = new Node(popNode.m, popNode);
 		Node splitRight = new Node(popNode.m, popNode);
-		
-		//현재 pop한 노드에 추가적으로 key 삽입 가능 상태
-		if(count != popNode.m - 1) {
-			split.add("현재추가가능");
+		if(count != popNode.m -1) {
+			//삽입하고 종료?
+//			
+//			x.key[count] = newKey;
+			split.add(-1);
+			
 		}
-		//현재 pop한 노드가 꽉 차있어, split한 노드와 중간 키를 return하여 넘겨줘야하는 상황
 		else {
+			//중간 값 찾아서 넘기면 되나?
+			
 			Node tempNode = new Node(popNode.m+1,popNode.parent);
 			for (int i = 0 ; i < x.count ; i++) {
 				tempNode.key.add(i, x.key.get(i));
@@ -241,6 +252,8 @@ public class BTree {
 					splitLeft.count++;
 					splitRight.count++;
 				}
+//				tempNode.child[0] = splitLeft;
+//				tempNode.child[1] = splitRight;
 				split.add(newKey);
 				split.add(splitLeft);
 				split.add(splitRight);
@@ -251,9 +264,11 @@ public class BTree {
 					splitLeft.key.add(i, tempNode.key.get(i));
 					splitLeft.count++;
 				}
-				for (int j = tempNode.m/2 + 1 ; j < tempNode.m - 1 ; j++)
-					splitRight.key.add(j-tempNode.m/2-1, tempNode.key.get(j));
+					splitRight.key.add(tempNode.count-1-tempNode.m/2-1, tempNode.key.get(tempNode.count-1));
 					splitRight.count++;
+				
+//				tempNode.child[0] = splitLeft;
+//				tempNode.child[1] = splitRight;
 				split.add(newKey);
 				split.add(splitLeft);
 				split.add(splitRight);
@@ -262,5 +277,7 @@ public class BTree {
 		}
 		return split;
 	}
+	
+	
 
 }
