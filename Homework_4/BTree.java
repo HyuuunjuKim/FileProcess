@@ -351,7 +351,7 @@ public class BTree {
 		return split;
 	}
 	
-	public Node searchDeleteKey(Node root, int searchKey, Stack stack, Stack parent) {
+	public Node searchDeleteKey(Node root2, int searchKey, Stack stack, Stack stack2) {
 		/*
 		 * 1. deleteKey가 일단 트리에 있는지 조사
 		 * 2. deleteKey가 tree 안에 존재하면, 내부노드 or 단말노드 중 어디에 존재하는지 조사
@@ -359,7 +359,7 @@ public class BTree {
 		 * 4. 내부노드이면 후행키까지 찾아가서 후행키와 deleteKey를 찾은후 바꿔서 return
 		 */
 		int i=0;
-		
+		Node root = root2;
 		while(i < root.count && searchKey > root.key.get(i)) {
 			i++;
 		}
@@ -368,9 +368,9 @@ public class BTree {
 //			return null; //delete할 searchKey를 찾음
 		}
 		else {
-			parent.push(root);
+			stack2.push(root);
 			stack.push(root);
-			return searchDeleteKey(root.getChildNode(i), searchKey, stack, parent);
+			return searchDeleteKey(root.getChildNode(i), searchKey, stack, stack2);
 		}
 		
 		Node internal = null;	
@@ -378,45 +378,57 @@ public class BTree {
 		if(!root.isLeaf(root.m)) { //deleteKey가 내부 노드에서 발견됨
 			internal = root;
 			stack.push(root);
+//			stack2.push(root);
 			root = root.getChildNode(i+1);
 			do {
 				stack.push(root);
+//				stack2.push(root);
 				root = root.getChildNode(0);
 			}while(root != null);
 			
 			if(root == null) {
-				root = (Node) stack.pop();
+				root = (Node) stack.peek();
 				temp = internal.key.get(i);
 				
+				internal.key.remove(i);
 				internal.key.add(i, root.key.get(0));
+				root.key.remove(0);
 				root.key.add(0, temp);
+				root2 = root;
 			}
 			
-			return root;
+			return root2;
 		}
 		else { //deleteKey가 단말노드에서 발견
 			stack.push(root);
-			return root;
+			stack2.push(root);
+			root2 = root;
+			return root2;
 		}
-		
 		
 	}
 	
 	public Node deleteBT(Node T, int m, int oldKey) {
 		Stack<Node> stack = new Stack<>(); //deleteKey의 자리를 찾아가며 거처가는 노드들을 담을 스택
-		Stack<Node> parent = new Stack<>(); //거처가는 노드들의 부모노드를 담을 스택
+		Stack<Node> stack2 = new Stack<>(); //거처가는 노드들의 부모노드를 담을 스택
 		Vector deleteInfo;
 		
 		Node x = T;
 		
-		Node switchTree = searchDeleteKey(x, oldKey, stack, parent);
+		Node switchTree = searchDeleteKey(x, oldKey, stack, stack2);
+		
 		
 		do {
-			Node popNode = stack.pop(); //newKey를 삽입시킬 위치
-			Node parent_pop = popNode.parent;
+			Node popNode = stack.pop();
+			if(stack.size() >= 1) {
+				popNode.parent = stack.peek();
+			}
+			else {
+				popNode.parent = null;
+			}
 			Node LeftSibling = null;
 			Node RightSibling = null;
-			deleteInfo = deleteKey(m, popNode, oldKey);
+			
 			
 			int deleteKeyIndex = 0;
 			for (deleteKeyIndex = 0 ; deleteKeyIndex <= popNode.count ; deleteKeyIndex++) {
@@ -425,12 +437,23 @@ public class BTree {
 				}
 			}
 			
+			if(popNode.parent == null) {
+				popNode.key.remove(deleteKeyIndex);
+				popNode.count--;
+				break;
+			}
+			
 			int popNodeIndex = 0;
-			for (popNodeIndex = 0 ; popNodeIndex <= popNode.parent.count+1 ; popNodeIndex++) {
+			for (popNodeIndex = 0 ; popNodeIndex <= popNode.parent.count ; popNodeIndex++) {
 				if(popNode.parent.getChildNode(popNodeIndex) == popNode) {
 					break;
 				}
+				else {
+					continue;
+				}
 			}
+			
+			deleteInfo = deleteKey(m, popNode, oldKey);
 			
 			if(deleteInfo.get(0).equals("바로삭제가능")) {
 				//바로 삭제
@@ -441,60 +464,157 @@ public class BTree {
 			else if(deleteInfo.get(0).equals("getLeft")) {
 				//parent가
 				LeftSibling = (Node) deleteInfo.get(1);
-				popNode.key.remove(deleteKeyIndex);
-				//지우는 자리에 부모의 key대신 넣고
-				popNode.key.add(deleteKeyIndex, parent_pop.key.get(popNodeIndex-1));
-				//부모 자리에 왼쪽 자식의 가장큰거 넣고
-				parent_pop.key.remove(popNodeIndex-1);
-				parent_pop.key.add(popNodeIndex-1, LeftSibling.key.get(LeftSibling.count-1));
-				//왼쪽 자식에서 가장 큰거 지우고
-				LeftSibling.key.remove(LeftSibling.count-1);
-				//왼쪽 자식의 count --1
-				LeftSibling.count--;
-				break;
+				if(popNode.isLeaf == true) {
+					popNode.key.remove(deleteKeyIndex);
+					//지우는 자리에 부모의 key대신 넣고
+					popNode.key.add(deleteKeyIndex, popNode.parent.key.get(popNodeIndex-1));
+					//부모 자리에 왼쪽 자식의 가장큰거 넣고
+					popNode.parent.key.remove(popNodeIndex-1);
+					popNode.parent.key.add(popNodeIndex-1, LeftSibling.key.get(LeftSibling.count-1));
+					//왼쪽 자식에서 가장 큰거 지우고
+					LeftSibling.key.remove(LeftSibling.count-1);
+					//왼쪽 자식의 count --1
+					LeftSibling.count--;
+					break;
+				}
+				else { //popNode가 자식이 있음
+					popNode.key.remove(deleteKeyIndex);
+					//지우는 자리에 부모의 key대신 넣고
+					popNode.key.add(deleteKeyIndex, popNode.parent.key.get(popNodeIndex-1));
+					//부모 자리에 왼쪽 자식의 가장큰거 넣고
+					popNode.parent.key.remove(popNodeIndex-1);
+					popNode.parent.key.add(popNodeIndex-1, LeftSibling.key.get(LeftSibling.count-1));
+					LeftSibling.key.remove(LeftSibling.count-1);
+					
+					//왼쪽 자식의 count --1
+					LeftSibling.count--;
+					popNode.child[0] = LeftSibling.getChildNode(LeftSibling.count+1);
+					for(int i = LeftSibling.count+1 ; i < LeftSibling.m ; i++) {
+						LeftSibling.child[i] = null;
+					}
+					break;
+					
+				}
+				
 				
 				
 			}
 			else if(deleteInfo.get(0).equals("getRight")) {
 				//parent가
 				RightSibling = (Node) deleteInfo.get(1);
-				popNode.key.remove(deleteKeyIndex);
-				//지우는 자리에 부모의 key대신 넣고
-				popNode.key.add(deleteKeyIndex, parent_pop.key.get(popNodeIndex));
-				//부모 자리에 오른쪽 자식의 가장 작은거 넣고
-				parent_pop.key.remove(popNodeIndex);
-				parent_pop.key.add(popNodeIndex, RightSibling.key.get(0));
-				//왼쪽 자식에서 가장 큰거 지우고
-				RightSibling.key.remove(0);
-				//왼쪽 자식의 count --1
-				RightSibling.count--;
-				break;
+				if(popNode.isLeaf == true) {
+					popNode.key.remove(deleteKeyIndex);
+					//지우는 자리에 부모의 key대신 넣고
+					popNode.key.add(deleteKeyIndex, popNode.parent.key.get(popNodeIndex));
+					//부모 자리에 오른쪽 자식의 가장 작은거 넣고
+					popNode.parent.key.remove(popNodeIndex);
+					popNode.parent.key.add(popNodeIndex, RightSibling.key.get(0));
+					//왼쪽 자식에서 가장 큰거 지우고
+					RightSibling.key.remove(0);
+					//왼쪽 자식의 count --1
+					RightSibling.count--;
+					break;
+				}
+				else {
+					popNode.key.remove(deleteKeyIndex);
+					//지우는 자리에 부모의 key대신 넣고
+					popNode.key.add(deleteKeyIndex, popNode.parent.key.get(popNodeIndex));
+					//부모 자리에 오른쪽 자식의 가장 작은거 넣고
+					popNode.parent.key.remove(popNodeIndex);
+					popNode.parent.key.add(popNodeIndex, RightSibling.key.get(0));
+					//오른쪽 자식에서 가장 작은거 지우고
+					RightSibling.key.remove(0);
+					//오른쪽 자식의 count --1
+					RightSibling.count--;
+					//일단 m=4일때만
+					popNode.child[0] = popNode.child[1];
+					popNode.child[1] = RightSibling.getChildNode(0);
+					for(int i = 0 ; i <= RightSibling.count ; i++) {
+						RightSibling.child[i] = RightSibling.child[i+1];
+					}
+					break;
+				}
 				
 			}
 			else if(deleteInfo.get(0).equals("mergeLeft")) {
+				popNode.key.remove(deleteKeyIndex);
 				
+				LeftSibling = (Node) deleteInfo.get(1);
+				for(int i = 0 ; i < LeftSibling.count; i++) {
+					popNode.key.add(i, LeftSibling.key.get(i));
+					popNode.count++;
+				}
+				if(popNode.isLeaf != true) {
+					popNode.child[popNode.count] = popNode.child[1];
+					for(int i = 0 ; i < popNode.count ; i++) {
+						popNode.child[i] = LeftSibling.child[i];
+					}
+				}
+				LeftSibling.key.clear();
+				
+				popNode.key.add(LeftSibling.count, popNode.parent.key.get(popNodeIndex-1));
+				
+				if(popNode.parent.count  > Math.ceil(popNode.m/2) - 1) {
+					
+					popNode.parent.key.remove(popNodeIndex-1);
+					popNode.parent.count--;
+					
+					for(int i = popNodeIndex-1 ; i <= popNode.parent.count ; i++) {
+						popNode.parent.child[i] = popNode.parent.child[i+1];
+					}
+					popNode.parent.child[popNode.parent.count+1] = null;
+					break;
+				}
+				else {
+					if(popNode.parent == T) {
+						T = T.getChildNode(1);
+						break;
+					}
+					oldKey = popNode.parent.key.get(popNodeIndex-1);
+					popNode.parent.isLeaf = false;
+					continue;
+				}
 			}
 			else if(deleteInfo.get(0).equals("mergeRight")) {
 				popNode.key.remove(deleteKeyIndex);
-				popNode.key.add(popNode.count-1, parent_pop.key.get(popNodeIndex));
-				for(int i = popNode.count ; i <= popNode.count + RightSibling.count ; i++) {
-					popNode.key.add(i, RightSibling.key.get(0));
+				
+				RightSibling = (Node) deleteInfo.get(1);
+				popNode.key.add(popNode.count-1, popNode.parent.key.get(popNodeIndex));
+				for(int i = deleteKeyIndex ; i < deleteKeyIndex + RightSibling.count ; i++) {
+					popNode.key.add(i+1, RightSibling.key.get(i-deleteKeyIndex));
 					popNode.count++;
 				}
-				RightSibling.key.clear();
-				for(int i = popNodeIndex+2 ; i <= parent_pop.count+1 ; i++) {
-					parent_pop.child[i-1] = parent_pop.child[i];
+				if(popNode.isLeaf != true) {
+					popNode.child[0] = popNode.child[1];
+					for(int i = 0 ; i <= RightSibling.count ; i++) {
+						popNode.child[i+1] = RightSibling.child[i];
+					}
 				}
-				parent_pop.key.remove(popNodeIndex);
-				parent_pop.count--;
-				
-				if(parent_pop.count > Math.ceil(popNode.m/2) - 1) {
+				RightSibling.key.clear();
+				if(popNode.parent.count  > Math.ceil(popNode.m/2) - 1) {
+					for(int i = popNodeIndex+2 ; i < popNode.parent.count+1 ; i++) {
+						popNode.parent.child[i-1] = popNode.parent.child[i];
+					}
+					popNode.parent.child[popNode.parent.count]=null;
+					popNode.parent.key.remove(popNodeIndex);
+					popNode.parent.count--;
 					break;
 				}
+				else {
+					if(popNode.parent == T) {
+						T = T.getChildNode(1);
+						break;
+					}
+					popNode.parent.child[popNodeIndex+1] = popNode.parent.child[popNodeIndex];
+					popNode.parent.child[popNodeIndex] =  null;
+					oldKey = popNode.parent.key.get(popNodeIndex);
+					popNode.parent.isLeaf = false;
+					continue;
+				}
+				
 			}
 		}while(!stack.isEmpty());
-		
-		
+			
 		return T;
 
 	}
@@ -516,6 +636,15 @@ public class BTree {
 			deleteInfo.add("바로삭제가능");
 		}
 		else if(popNode.count <= Math.ceil(popNode.m/2) - 1) {
+			int popNodeIndex = 0;
+			for (popNodeIndex = 0 ; popNodeIndex <= popNode.parent.count ; popNodeIndex++) {
+				if(popNode.parent.getChildNode(popNodeIndex) == popNode) {
+					break;
+				}
+				else {
+					continue;
+				}
+			}
 			//형제 노드 가져오기 가능 -> 재분배 가능
 			if(parent.getChildNode(parent.count) == popNode) { //무조건 왼쪽 형제노드 가져올 떄
 				if(parent.getChildNode(parent.count-1).count > Math.ceil(popNode.m/2) - 1) { //재분배 가능
@@ -540,11 +669,13 @@ public class BTree {
 			}
 			else { //양쪽 다있으면 key의개수 많은거에서 가져오기
 				int i = 0;
-				for(i = 0 ; i <= parent.count+1 ; i++) {
+				
+				for(i = 0 ; i <= parent.count ; i++) {
 					if(parent.getChildNode(i) == popNode) {
 						break;
 					}
 				}
+				
 				if(parent.getChildNode(i-1).count >= parent.getChildNode(i+1).count) {
 					//개수 비교했는데 왼쪽 형제가 더 많으면
 					if(parent.getChildNode(i-1).count > Math.ceil(popNode.m/2) - 1) { //재분배 가능
